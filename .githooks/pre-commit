@@ -1,0 +1,21 @@
+#!/bin/sh
+# Refuse a commit whose staged C++ files aren't clang-formatted or don't
+# compile. Enable once per clone:
+#   git config core.hooksPath .githooks
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cpp|hpp|h)$')
+[ -z "$staged" ] && exit 0
+status=0
+
+if ! command -v clang-format >/dev/null 2>&1; then
+  echo "pre-commit: clang-format not found; install it (brew install clang-format)" >&2
+  exit 1
+fi
+
+for f in $staged; do
+  clang-format --dry-run -Werror "$f" || status=1
+  c++ -std=c++20 -fsyntax-only -Wall -Wextra "$f" || status=1
+done
+
+[ $status -ne 0 ] && printf "\npre-commit: fix the problems above, or commit with --no-verify to skip.\n" >&2
+exit $status
