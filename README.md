@@ -21,7 +21,11 @@ AddressSanitizer and UndefinedBehaviorSanitizer, with ThreadSanitizer for the th
 tests/run.sh        # or: tests/run.sh g++
 ```
 
-GitHub Actions runs them with GCC and clang on every push.
+GitHub Actions runs them with GCC 16 and clang on Ubuntu 26.04 on every push. Before
+GCC 16, libstdc++'s `std::counting_semaphore` can deadlock under contention
+([GCC bug 104928](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=104928)), which
+occasionally hung the semaphore-based producer-consumer, dining philosophers and
+reader-writer.
 
 ## Pre-commit hook
 
