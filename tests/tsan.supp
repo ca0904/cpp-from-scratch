@@ -1,0 +1,7 @@
+# ThreadSanitizer suppressions, loaded by run.sh
+#
+# DiningPhilosophersSemaphore takes the left fork, then the right, so its five
+# forks form a lock-order cycle. The semaphore lets at most four philosophers in
+# at once, which is what keeps it deadlock-free, but the lock-order checker can't
+# see that. A real deadlock would still stop the test from completing.
+deadlock:DiningPhilosophersSemaphore::wants_to_eat

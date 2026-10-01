@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Pinned to the version the local hook uses, so both format the same way
+      - run: pipx run clang-format==23.1.1 --dry-run -Werror $(git ls-files '*.cpp' '*.hpp')
+
+  test:
+    name: Build and test (${{ matrix.compiler }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # a deadlock fails the job instead of hanging
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-16, clang++]
+    # Ubuntu 24.04's libstdc++ (GCC 14) has a std::counting_semaphore deadlock
+    # (GCC PR104928, fixed in GCC 16) that hung the semaphore tests now and then.
+    # clang picks up GCC 16's libstdc++ when g++-16 is installed.
+    container:
+      image: ubuntu:26.04
+      options: --privileged # lets the sanitizers set the address-space layout
+    steps:
+      # git first, so the checkout is a real repository for git ls-files / grep
+      - run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git g++-16 clang
+      - uses: actions/checkout@v7
+      # the checkout belongs to the runner's user, not the container's root
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      # The sanitizers fail to start with the runner's default address-space
+      # randomisation
+      - run: sysctl vm.mmap_rnd_bits=28
+      - name: Every file compiles
+        run: |
+          status=0
+          for f in $(git ls-files '*.cpp'); do
+            ${{ matrix.compiler }} -std=c++20 -fsyntax-only -Wall -Wextra "$f" || status=1
+          done
+          exit $status
+      - name: Demo programs run
+        run: |
+          for f in $(git grep -l 'int main' -- 'os/*.cpp' 'oop/*.cpp'); do
+            echo "::group::$f"
+            ${{ matrix.compiler }} -std=c++20 -pthread "$f" -o demo && ./demo
+            echo "::endgroup::"
+          done
+      - name: Tests with sanitizers
+        run: tests/run.sh ${{ matrix.compiler }}

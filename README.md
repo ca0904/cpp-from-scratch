@@ -1,5 +1,7 @@
 # cpp-from-scratch
 
+[![CI](https://github.com/ca0904/cpp-from-scratch/actions/workflows/ci.yml/badge.svg)](https://github.com/ca0904/cpp-from-scratch/actions/workflows/ci.yml)
+
 C++ implementations of standard library types and concurrency primitives, written to
 understand how they work.
 
@@ -9,6 +11,17 @@ understand how they work.
 | `smartptr/` | `auto_ptr`, `unique_ptr`, `shared_ptr` |
 | `stl/` | vector, hash table, BST, AVL tree, red-black tree |
 | `oop/` | encapsulation, abstraction, inheritance, polymorphism |
+
+## Tests
+
+The classes are tested in `tests/` against their standard-library counterparts, under
+AddressSanitizer and UndefinedBehaviorSanitizer, with ThreadSanitizer for the threaded ones:
+
+```sh
+tests/run.sh        # or: tests/run.sh g++
+```
+
+GitHub Actions runs them with GCC and clang on every push.
 
 ## Pre-commit hook
 
